@@ -16,9 +16,10 @@ id_to_label = {labelMap[i]: i for i in range(len(labelMap))}
 
 class RoadCam:
 
-    def __init__(self, blob_path) -> None:
+    def __init__(self, blob_path, detections_queue) -> None:
         self.blob_path = blob_path
         self.sync_nn = True
+        self.detectons_queue = detections_queue
 
 
     def setup_pipeline(self):
@@ -77,7 +78,7 @@ class RoadCam:
             detections = []
             startTime = time.monotonic()
             counter = 0
-            self.detectons = queue.Queue()
+            # self.detectons = queue.Queue()
             while True:
                 inPreview = previewQueue.get()
                 inDet = detectionNNQueue.get()
@@ -140,9 +141,11 @@ class RoadCam:
                         cv2.imshow("preview", frame)
                         if cv2.waitKey(1) == ord('q'):
                             break    
-
-                        
-                self.detectons.put(frame_detections)
+                # print(frame_detections)
+                # print("UNATRE")
+                # print(self.detectons_queue)
+                self.detectons_queue.put(frame_detections)
+                # self.detectons.put(frame_detections)
 
                         
 
@@ -151,7 +154,8 @@ class RoadCam:
 
 if __name__ == "__main__":
     blob_path = './blobconverter/mobilenet-ssd_openvino_2021.4_6shave.blob'
-    road_cam = RoadCam(blob_path)
+    detections_queue = queue.Queue()
+    road_cam = RoadCam(blob_path, detections_queue= detections_queue)
     road_cam.setup_pipeline()
     road_cam.run(demo=True)
     cv2.destroyAllWindows()    
