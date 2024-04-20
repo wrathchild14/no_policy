@@ -1,28 +1,48 @@
 from flask import Flask, request, jsonify
-from PIL import Image
+import numpy as np
+
+from drowsiness_detection.detect import *
 
 app = Flask(__name__)
 
+drowsy_data = []
+DROWSY_THRESHOLD = 3
+
+detect = dlib.get_frontal_face_detector()
+predict = dlib.shape_predictor("drowsiness_detection/shape_predictor_68_face_landmarks.dat")
+
+(lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+(rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
+result = None
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image provided'}), 400
     
-    file = request.files['image']
-    
-    # Check if the file is an image
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-    
-    if file:
-        try:
-            # Open the image using Pillow
-            image = Image.open(file)
-            return jsonify({'image size': image.size}), 200
-        
-        except Exception as e:
-            return jsonify({'error': f'Error processing image: {str(e)}'}), 500
+    # Variables for Drowsiness Detection
+    global drowsy_data, DROWSY_THRESHOLD
+    global detect, predict, lStart, lEnd, rStart, rEnd
+    global result
+
+    try:
+        byte_array = request.get_data()
+
+        image_np = np.frombuffer(byte_array, dtype=np.uint8)
+        image = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+        image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+        drowsy_data.append(image)
+        if len(drowsy_data) > DROWSY_THRESHOLD:
+            result = drowsy_system(drowsy_data, detect, predict, lStart, lEnd, rStart, rEnd)
+            drowsy_data = []
+
+        if result is not None:
+            return jsonify({'signal': result}), 200
+        else:
+            return jsonify({'signal': -1, 'message': 'Not enough data for detection'}), 200
+
+    except Exception as e:
+        # Handle any errors that occur during image processing
+        return jsonify({'error': f'Error processing image: {str(e)}'}), 500
 
 
 
