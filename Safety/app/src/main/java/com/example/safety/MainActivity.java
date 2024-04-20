@@ -13,20 +13,24 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.util.Base64;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,18 +41,18 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import okhttp3.Call;
 import okhttp3.Response;
-import okhttp3.Callback;
 
 public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA_PERMISSION = 100;
     private static final String TAG = "MainActivity";
-    private static final long CAPTURE_INTERVAL = 1000; // milliseconds
+    private static final long CAPTURE_INTERVAL = 500; // milliseconds
 
     private TextureView textureView;
     private Button startStopButton;
@@ -63,11 +67,17 @@ public class MainActivity extends AppCompatActivity {
     private boolean isCapturing = false;
 
     private Timer timer;
+    private HandlerThread backgroundThread;
+    private Handler backgroundHandler;
+    private MediaPlayer mediaPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Screen doesn't sleep
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         textureView = findViewById(R.id.textureView);
         startStopButton = findViewById(R.id.startStopButton);
@@ -77,7 +87,17 @@ public class MainActivity extends AppCompatActivity {
         cameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
         textureView.setSurfaceTextureListener(textureListener);
 
-        previewSize = new Size(400, 400); // ??????
+        previewSize = new Size(400, 400); // Set your desired preview size here
+
+        mediaPlayer = new MediaPlayer();
+        mediaPlayer = MediaPlayer.create(this, R.raw.beep2);
+
+        mediaPlayer.setOnCompletionListener(mp -> Log.d(TAG, "Playback completed"));
+
+        mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+            Log.e(TAG, "MediaPlayer error: " + what + ", " + extra);
+            return false;
+        });
     }
 
     private void openCamera() {
@@ -122,13 +142,18 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onDisconnected(@NonNull CameraDevice camera) {
-            cameraDevice.close();
+            if (cameraDevice != null) {
+                cameraDevice.close();
+                cameraDevice = null;
+            }
         }
 
         @Override
         public void onError(@NonNull CameraDevice camera, int error) {
-            cameraDevice.close();
-            cameraDevice = null;
+            if (cameraDevice != null) {
+                cameraDevice.close();
+                cameraDevice = null;
+            }
         }
     };
 
@@ -179,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     captureImage();
                 }
-            }, 0, CAPTURE_INTERVAL); // Capture image every 5 seconds (5000 milliseconds)
+            }, 0, CAPTURE_INTERVAL); // Capture image every specified interval
         }
     }
 
@@ -199,9 +224,12 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        HandlerThread handlerThread = new HandlerThread("ImageReaderHandlerThread");
-        handlerThread.start();
-        Handler backgroundHandler = new Handler(handlerThread.getLooper());
+        // Create a new background thread for image processing
+        if (backgroundThread == null) {
+            backgroundThread = new HandlerThread("ImageReaderHandlerThread");
+            backgroundThread.start();
+            backgroundHandler = new Handler(backgroundThread.getLooper());
+        }
 
         // Use the backgroundHandler to execute the image capture logic
         backgroundHandler.post(() -> {
@@ -269,6 +297,28 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void closeCamera() {
+        if (cameraCaptureSession != null) {
+            cameraCaptureSession.close();
+            cameraCaptureSession = null;
+        }
+        if (cameraDevice != null) {
+            cameraDevice.close();
+            cameraDevice = null;
+        }
+        if (backgroundThread != null) {
+            backgroundThread.quitSafely();
+            try {
+                backgroundThread.join();
+                backgroundThread = null;
+                backgroundHandler = null;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
     private void sendImageToServer(byte[] imageData) {
         // Implement sending the image data via POST request to your server
         // You can use libraries like Retrofit, Volley, or OkHttpClient to make the POST request
@@ -276,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
         OkHttpClient client = new OkHttpClient();
 
         // Create the request body with the image data
-        RequestBody requestBody = RequestBody.create(MediaType.parse("image/jpeg"), imageData);
+        RequestBody requestBody = RequestBody.create(imageData, MediaType.parse("image/jpeg"));
 
         // Build the POST request
         Request request = new Request.Builder()
@@ -288,20 +338,57 @@ public class MainActivity extends AppCompatActivity {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                System.out.println("IMAGE REQUEST FAILED");
-                e.printStackTrace();
+                Log.e(TAG, "IMAGE REQUEST FAILED", e);
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    throw new IOException("Unexpected code " + response);
+                    Log.e(TAG, "Unexpected code " + response);
                 }
                 // Handle the response from the server
                 String responseData = response.body().string();
                 Log.d(TAG, "Server response: " + responseData);
+
+                // Parse the JSON response to extract the signal value
+                try {
+                    JSONObject jsonResponse = new JSONObject(responseData);
+                    int signal = jsonResponse.getInt("signal");
+
+                    // Check the signal value and trigger a beep sound accordingly
+                    if (signal == 1) {
+                        playBeepSound();
+                        System.out.println("BEEEP");
+                    } else {
+                        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                            mediaPlayer.stop();
+                            mediaPlayer.reset();
+                        }
+                        System.out.println("NOT BEEP");
+                    }
+                } catch (JSONException e) {
+                    Log.e(TAG, "Error parsing JSON response", e);
+                }
+                response.close();
             }
         });
+
+    }
+
+    private void playBeepSound() {
+        // Stop any ongoing playback
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            mediaPlayer.stop();
+            mediaPlayer.reset();
+        }
+        // Start playing the beep sound
+        mediaPlayer = MediaPlayer.create(this, R.raw.beep2);
+        mediaPlayer.setOnCompletionListener(mp -> Log.d(TAG, "Playback completed"));
+        mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+            Log.e(TAG, "MediaPlayer error: " + what + ", " + extra);
+            return false;
+        });
+        mediaPlayer.start();
     }
 
     private void onStartStopButtonClick() {
@@ -333,20 +420,38 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (cameraDevice != null) {
-            cameraDevice.close();
-            cameraDevice = null;
-        }
+        closeCamera();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (cameraDevice != null) {
-            cameraDevice.close();
-            cameraDevice = null;
-        }
+        closeCamera();
+        mediaPlayer.release();
     }
+
+    private TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
+        @Override
+        public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
+            chooseOptimalPreviewSize(width, height);
+            openCamera();
+        }
+
+        @Override
+        public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
+            // No implementation needed
+        }
+
+        @Override
+        public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
+            return false;
+        }
+
+        @Override
+        public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {
+            // No implementation needed
+        }
+    };
 
     private void chooseOptimalPreviewSize(int width, int height) {
         if (cameraId == null) {
@@ -372,27 +477,4 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
-    private TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
-        @Override
-        public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
-            chooseOptimalPreviewSize(width, height);
-            openCamera();
-        }
-
-        @Override
-        public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
-            // No implementation needed
-        }
-
-        @Override
-        public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
-            return false;
-        }
-
-        @Override
-        public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {
-            // No implementation needed
-        }
-    };
 }
