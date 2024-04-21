@@ -349,8 +349,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Build the POST request
         Request request = new Request.Builder()
-//                .url("http://10.42.0.1:5000/upload")
-                .url("http://192.168.4.38:5000/upload")
+                .url("http://10.42.0.1:5000/upload")
+//                .url("http://192.168.4.38:5000/upload")
                 .post(requestBody)
                 .build();
 

@@ -8,7 +8,8 @@ To illustrate, in 2024, more than 25% of all cars in the U.S. are at least 17 ye
 ## Solution
 Introducing **Safe Dash**—an affordable, easy-to-install safety system that detects driver drowsiness and warns of potential collisions. Powered by AI and simple cameras, Safe Dash offers real-time alerts to keep drivers awake and aware on the road, without the need for expensive smart cars.
 
-# ovde ide slika sistema
+![System](images/system.jpg)
+
 
 ## Our system
 - **Stereo road camera**
