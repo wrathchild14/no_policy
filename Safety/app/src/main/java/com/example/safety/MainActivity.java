@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
         previewSize = new Size(400, 400); // Set your desired preview size here
 
         mediaPlayer = new MediaPlayer();
-        mediaPlayer = MediaPlayer.create(this, R.raw.beep2);
+        mediaPlayer = MediaPlayer.create(this, R.raw.beep);
 //        mediaPlayer.setLooping(true);
 
         mediaPlayer.setOnCompletionListener(mp -> Log.d(TAG, "Playback completed"));
@@ -349,6 +349,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Build the POST request
         Request request = new Request.Builder()
+//                .url("http://10.42.0.1:5000/upload")
                 .url("http://192.168.4.38:5000/upload")
                 .post(requestBody)
                 .build();
@@ -378,14 +379,12 @@ public class MainActivity extends AppCompatActivity {
                     if (signal == 1) {
                         playBeepSound();
                         showWarning();
-                        System.out.println("BEEEP");
                     } else {
                         if (mediaPlayer != null && mediaPlayer.isPlaying()) {
                             mediaPlayer.stop();
                             mediaPlayer.reset();
                         }
                         hideWarning();
-                        System.out.println("NOT BEEP");
                     }
                 } catch (JSONException e) {
                     Log.e(TAG, "Error parsing JSON response", e);
@@ -397,18 +396,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void playBeepSound() {
-        // Stop any ongoing playback
         if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.stop();
             mediaPlayer.reset();
         }
         // Start playing the beep sound
-        mediaPlayer = MediaPlayer.create(this, R.raw.beep2);
-//        mediaPlayer.setOnCompletionListener(mp -> Log.d(TAG, "Playback completed"));
-//        mediaPlayer.setOnErrorListener((mp, what, extra) -> {
-//            Log.e(TAG, "MediaPlayer error: " + what + ", " + extra);
-//            return false;
-//        });
+        mediaPlayer = MediaPlayer.create(this, R.raw.beep);
+        //        mediaPlayer.setOnCompletionListener(mp -> Log.d(TAG, "Playback completed"));
+        //        mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+        //            Log.e(TAG, "MediaPlayer error: " + what + ", " + extra);
+        //            return false;
+        //        });
         if (mediaPlayer != null) {
             mediaPlayer.start();
         }
