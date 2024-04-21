@@ -27,5 +27,20 @@ Introducing **Safe Dash**—an affordable, easy-to-install safety system that de
 # Road camera
 ![Depth](images-demo/jovan_depth.png)
 
-# Future
+# Future Improvements
 ![Architecture](images/edge_cloud.png)
+
+- **Connecting to Radio**:
+  - Interrupt the radio with safety alerts to ensure drivers are immediately informed of important warnings.
+
+- **Adding More Cameras**:
+  - Integrate additional cameras for enhanced functionality, such as a parking helper and improved blind spot detection.
+
+- **Adding Voice Control**:
+  - Enable hands-free interaction with the system to reduce distractions and improve safety.
+
+- **Road Sign Detection**:
+  - Implement AI-based road sign recognition to alert drivers to speed limits, stop signs, and other important road information.
+
+- **Lane Departure Warning**:
+  - Use camera-based technology to detect unintentional lane changes and provide early warnings to drivers.
