@@ -143,8 +143,11 @@ class RoadCam:
                             break    
                 # print(frame_detections)
                 # print("UNATRE")
-                # print(self.detectons_queue)
+                # print(self.detectons_queue.qsize())
+                # self.detectons_queue = queue.Queue([1, 2, 3])
                 self.detectons_queue.put(frame_detections)
+                # self.detectons_queue.put("GJUPTIN")
+                # print(self.detectons_queue.get())
                 # self.detectons.put(frame_detections)
 
                         
