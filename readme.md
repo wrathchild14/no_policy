@@ -13,7 +13,7 @@ Introducing **Safe Dash**—an affordable, easy-to-install safety system that de
 ## Our system
 - **Stereo road camera**
 - **Raspberry Pi 5**
-- **Android mobile Application**
+- **Android mobile Application/Embedded Camera**
 
 ## Features
 
@@ -25,7 +25,7 @@ Introducing **Safe Dash**—an affordable, easy-to-install safety system that de
 ![Architecture](images/arch.png)
 
 # Road camera
-![Depth](images-demo/jovan_depth.png)
+![Depth](images/jovan_depth.png)
 
 # Future Improvements
 ![Architecture](images/edge_cloud.png)
