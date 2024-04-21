@@ -23,7 +23,7 @@ result = None
 
 @app.route('/detections')
 def detections():
-    # global DETECTIONS
+    global DETECTIONS
     # detections = []
 
     # print("FLASK:", DETECTIONS)
@@ -79,5 +79,3 @@ if __name__ == '__main__':
     cam_thread.daemon = True
     cam_thread.start()
     app.run(debug=True, host='0.0.0.0', port=5000)  # Flask app runs in main thread
-
-    # app.run(debug=True, host='0.0.0.0', port=5000)
