@@ -45,3 +45,7 @@ Introducing **Safe Dash**—an affordable, easy-to-install safety system that de
 
 - **Lane Departure Warning**:
   - Use camera-based technology to detect unintentional lane changes and provide early warnings to drivers.
+
+# Additional notice
+
+This wasn't the cheapest optimal system, but the one we developed for demo.
