@@ -1,17 +1,14 @@
 from flask import Flask, request, jsonify
 import numpy as np
 import queue
-import threading
 
 from drowsiness_detection.detect import *
-from road_cam.roadcam import RoadCam
 
 app = Flask(__name__)
 
 drowsy_data = []
 DROWSY_THRESHOLD = 3
 DETECTIONS = queue.Queue()
-blob_path = 'road_cam/blobconverter/mobilenet-ssd_openvino_2021.4_6shave.blob'
 
 detect = dlib.get_frontal_face_detector()
 predict = dlib.shape_predictor("drowsiness_detection/shape_predictor_68_face_landmarks.dat")
@@ -19,25 +16,6 @@ predict = dlib.shape_predictor("drowsiness_detection/shape_predictor_68_face_lan
 (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
 (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
 result = None
-
-
-@app.route('/detections')
-def detections():
-    # global DETECTIONS
-    # detections = []
-
-    # print("FLASK:", DETECTIONS)
-    # print(DETECTIONS.get())
-    return jsonify(DETECTIONS.get())
-        # detections.append(latest_detections.get())
-    # return jsonify(detections)
-
-
-
-def run_road_cam(road_cam):
-    # road_cam = RoadCam(blob_path, detections_queue)  # Pass the shared queue to RoadCam
-    # road_cam.setup_pipeline()
-    road_cam.run(demo=False)
 
 
 @app.route('/upload', methods=['POST'])
@@ -72,12 +50,4 @@ def upload_file():
 
 
 if __name__ == '__main__':
-    
-    roadcam = RoadCam(blob_path, detections_queue=DETECTIONS)
-    roadcam.setup_pipeline()
-    cam_thread = threading.Thread(target=run_road_cam, args=(roadcam,))
-    cam_thread.daemon = True
-    cam_thread.start()
-    app.run(debug=True, host='0.0.0.0', port=5000)  # Flask app runs in main thread
-
-    # app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
