@@ -12,7 +12,7 @@ Introducing **Safe Dash**—an affordable, easy-to-install safety system that de
 
 
 ## Our system
-- **Stereo road camera**
+- **Stereo road camera ([Luxonis OAK D-Lite](https://shop.luxonis.com/collections/oak-cameras-1/products/oak-d-lite-1?variant=42583102456031))**
 - **Raspberry Pi 5**
 - **Android mobile Application/Embedded Camera**
 
